@@ -156,8 +156,27 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
-  notify-slack:
+  deploy:
+    name: Deploy
     needs: [frontend, django, docker]
+    runs-on: [self-hosted, windows, quiz-battle]
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target_branch }}
+
+      - name: Deploy application
+        run: |
+          docker compose down
+          docker compose up -d --build
+
+      - name: Check containers
+        run: docker compose ps
+
+  notify-slack:
+    needs: [frontend, django, docker, deploy]
     runs-on: [self-hosted, windows, quiz-battle]
     if: always()
     steps:
