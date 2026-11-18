@@ -30,13 +30,18 @@ on:
 permissions:
   contents: read
 
+# Self-hosted Windows runner: run every step with Git Bash so the Linux/bash commands work unchanged.
+defaults:
+  run:
+    shell: bash
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event.inputs.target_branch }}
   cancel-in-progress: true
 
 jobs:
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, windows, quiz-battle]
     timeout-minutes: 10
     defaults:
       run:
@@ -66,7 +71,7 @@ jobs:
 
   django:
     name: ${{ matrix.service }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, windows, quiz-battle]
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -107,7 +112,7 @@ jobs:
   docker:
     name: docker (${{ matrix.service }})
     needs: [frontend, django]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, windows, quiz-battle]
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -152,7 +157,7 @@ jobs:
 
   notify-slack:
     needs: [frontend, django, docker]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, windows, quiz-battle]
     if: always()
     steps:
       - name: Determine pipeline status
