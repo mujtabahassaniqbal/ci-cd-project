@@ -21,11 +21,6 @@ on:
         required: true
         default: true
         type: boolean
-      push_images:
-        description: 'Push Docker images to Docker Hub?'
-        required: true
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -110,55 +105,9 @@ jobs:
         if: ${{ github.event.inputs.run_tests == 'true' }}
         run: python manage.py test
 
-  docker:
-    name: docker (${{ matrix.service }})
-    needs: [frontend, django]
-    runs-on: [self-hosted, windows, quiz-battle]
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        service: [auth_service, game_service, frontend]
-    env:
-      PUSH: ${{ inputs.push_images }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.target_branch }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        if: env.PUSH == 'true'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Generate image tags
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ secrets.DOCKER_USERNAME || 'local' }}/quiz-battle-${{ matrix.service }}
-          tags: |
-            type=raw,value=${{ github.event.inputs.target_branch }}
-            type=sha
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: ${{ matrix.service }}
-          push: ${{ env.PUSH == 'true' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.service }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
-
   deploy:
     name: Deploy
-    needs: [frontend, django, docker]
+    needs: [frontend, django]
     runs-on: [self-hosted, windows, quiz-battle]
     timeout-minutes: 20
     steps:
